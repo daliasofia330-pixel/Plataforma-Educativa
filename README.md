@@ -1,6 +1,6 @@
 # Plataforma Académica Universitaria — Equipo 4
 
-Avance de la plataforma académica para administrar Usuarios, Estudiantes, Docentes, Cursos, Matrículas, Calificaciones y Horarios. Cada dominio es una API FastAPI independiente con su propia base SQLite. El cliente entra por el API Gateway, que valida JWT y aplica permisos por rol.
+Plataforma académica universitaria desarrollada con siete microservicios: Usuarios, Estudiantes, Docentes, Cursos, Matrículas, Calificaciones y Horarios. Cada dominio cuenta con una API FastAPI y una base SQLite independiente. El API Gateway centraliza el acceso y aplica autenticación JWT y permisos por rol.
 
 ## Componentes y direcciones
 
@@ -21,12 +21,12 @@ El frontend se sirve en `http://127.0.0.1:5500` y consume solo el Gateway. Las r
 
 Al publicarlo, Caddy sirve el frontend y reenvía las rutas del API al Gateway bajo el mismo dominio. Así el navegador no apunta al `localhost` de cada visitante. El Gateway queda enlazado solo a `127.0.0.1` del servidor; el tráfico externo entra por Caddy.
 
-## Arranque con Docker Compose
+## Ejecución local
 
-Requiere Docker Desktop con el motor activo. Desde la raíz de esta carpeta:
+Requiere Docker Desktop instalado y con el motor activo. Abre PowerShell en la carpeta del proyecto, es decir, la que contiene `compose.yaml`, `compose.demo.yaml` y `frontend/`. No importa en qué unidad o carpeta hayas clonado o descomprimido el repositorio: ejecuta los comandos desde esa raíz.
 
 ```powershell
-docker compose up --build
+docker compose up --build -d
 ```
 
 Compose crea siete bases persistentes independientes y espera a que los servicios relacionados estén listos. En otra terminal, sirve el frontend:
@@ -36,26 +36,39 @@ cd .\frontend
 py -m http.server 5500 --bind 127.0.0.1
 ```
 
-Abre `http://127.0.0.1:5500`. Mantén ambas terminales abiertas. Para detener Compose, pulsa `Ctrl+C`.
+Abre `http://127.0.0.1:5500`. La primera ejecución puede tardar mientras Docker descarga las imágenes y construye los servicios. Para detener todo, vuelve a la raíz del proyecto y ejecuta `docker compose down`. Los volúmenes de datos se conservan mientras no agregues `-v`.
 
-## Compartir gratis para una demostración temporal
+## Abrir el proyecto desde otro computador
 
-Para una presentación corta, puedes crear una URL pública temporal sin comprar VPS ni dominio usando Cloudflare Quick Tunnel. Requiere conexión a Internet y que el computador y Docker permanezcan encendidos. La dirección aleatoria deja de funcionar cuando se detiene el túnel y puede cambiar al volver a iniciarlo. Es para pruebas, no para alojar el sistema permanentemente; cualquiera que tenga el enlace puede abrirlo.
+Instala Docker Desktop en ese computador. Para clonar el repositorio, instala también Git, abre PowerShell en la carpeta donde quieras guardarlo y ejecuta:
 
-Desde la raíz del proyecto ejecuta:
+```powershell
+git clone https://github.com/daliasofia330-pixel/Plataforma-Educativa.git
+cd Plataforma-Educativa
+```
+
+También puedes descargar el proyecto desde GitHub con **Code → Download ZIP** y descomprimirlo. En ambos casos, abre la carpeta que contiene directamente `compose.yaml` y `compose.demo.yaml`. No uses una ruta fija como `C:\Users\...`: cada computador guarda el proyecto en una ubicación distinta.
+
+## Compartir gratis por Internet durante una demostración
+
+Cloudflare Quick Tunnel crea una dirección temporal `trycloudflare.com` para abrir la aplicación desde otro computador o un celular. No requiere comprar un dominio ni crear un VPS. La dirección se genera en el computador que ejecuta el túnel; **no es una URL fija del repositorio**. Cada computador genera su propia URL y sus propias bases de datos. El túnel funciona solo mientras ese computador, Docker y su conexión a Internet sigan activos. Cualquier persona con el enlace puede acceder, así que usa datos ficticios.
+
+Desde PowerShell, situado en la raíz del repositorio (la carpeta con los archivos Compose), inicia la demo integrada:
 
 ```powershell
 docker compose -f compose.yaml -f compose.demo.yaml up --build -d
 docker compose -f compose.yaml -f compose.demo.yaml logs -f cloudflared
 ```
 
-Copia la URL `https://...trycloudflare.com` que aparece en los registros y ábrela para comprobar el sitio. Mantén Docker Desktop y el computador activos durante la sustentación. Para dejar de exponerlo y detener los servicios:
+Espera a que los registros muestren una dirección `https://...trycloudflare.com`. Ábrela en el navegador de ese computador o compártela con la profesora. Mantén Docker Desktop y el computador que inició el túnel encendidos durante la presentación. Si ejecutas el proyecto desde otro computador, repite estos pasos y comparte la nueva dirección que genere ese equipo.
+
+Para dejar de exponer la aplicación y detener los servicios, ejecuta desde la raíz:
 
 ```powershell
 docker compose -f compose.yaml -f compose.demo.yaml down
 ```
 
-Usa solo datos ficticios en esta demostración pública. Cloudflare documenta que estos túneles son temporales y no tienen garantía de disponibilidad.
+La URL deja de funcionar al detener el túnel. Las bases SQLite están en volúmenes locales de Docker y no se suben al repositorio; en un computador nuevo se crean bases vacías y se debe configurar el administrador inicial y los datos de demostración.
 
 ## Despliegue en un VPS
 
@@ -126,6 +139,6 @@ Swagger permite probar rutas protegidas: inicia sesión en `POST /auth/login`, c
 
 ## Estado y precauciones
 
-Los Dockerfiles, el Gateway, la autorización y el despliegue conjunto están implementados en código; aún deben probarse con Docker y un flujo completo en el computador que se usará para sustentar. Solo se han revisado sintaxis de Python y JavaScript; todavía falta una batería de pruebas funcionales con evidencias.
+El proyecto se ejecutó en Docker Desktop y las capturas de la demostración mostraron los siete microservicios activos y solicitudes de salud con respuesta `200 OK`. También se probaron registros académicos y se generó una URL temporal con Cloudflare Quick Tunnel. Antes de la sustentación, comprueba el flujo completo desde las cuentas de estudiante y docente en el computador que alojará la demo.
 
-El secreto incluido en Compose es solo para demostración local. Cámbialo por un secreto privado antes de desplegar fuera del entorno académico. Las APIs están protegidas al acceder por el Gateway; en Docker solo el Gateway publica un puerto al host.
+Las bases de datos y los archivos `.env` no se versionan en Git. El repositorio incluye `.env.example` solo como plantilla. El secreto JWT de `compose.yaml` es para demostración; no uses datos reales ni esta configuración para un sistema público permanente. Para retirar la aplicación de Internet, ejecuta el comando `down` de la sección del túnel.
