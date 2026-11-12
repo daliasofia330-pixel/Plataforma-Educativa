@@ -1,0 +1,120 @@
+services:
+  cursos:
+    build: .
+    container_name: equipo4-cursos
+    volumes: ["cursos_data:/app/data"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+  estudiantes:
+    build: ./microservicio-estudiantes
+    container_name: equipo4-estudiantes
+    volumes: ["estudiantes_data:/app/data"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+  matriculas:
+    build: ./microservicio-matriculas
+    container_name: equipo4-matriculas
+    environment:
+      ESTUDIANTES_URL: http://estudiantes:8001
+      CURSOS_URL: http://cursos:8000
+    volumes: ["matriculas_data:/app/data"]
+    depends_on:
+      cursos: {condition: service_healthy}
+      estudiantes: {condition: service_healthy}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8002/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+  docentes:
+    build: ./microservicio-docentes
+    container_name: equipo4-docentes
+    volumes: ["docentes_data:/app/data"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8003/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+  calificaciones:
+    build: ./microservicio-calificaciones
+    container_name: equipo4-calificaciones
+    environment: {MATRICULAS_URL: http://matriculas:8002}
+    volumes: ["calificaciones_data:/app/data"]
+    depends_on:
+      matriculas: {condition: service_healthy}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8004/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+  horarios:
+    build: ./microservicio-horarios
+    container_name: equipo4-horarios
+    environment:
+      CURSOS_URL: http://cursos:8000
+      DOCENTES_URL: http://docentes:8003
+    volumes: ["horarios_data:/app/data"]
+    depends_on:
+      cursos: {condition: service_healthy}
+      docentes: {condition: service_healthy}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8006/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+  usuarios:
+    build: ./microservicio-usuarios
+    container_name: equipo4-usuarios
+    environment:
+      JWT_SECRET: equipo4-demo-cambiar-antes-de-produccion
+    volumes: ["usuarios_data:/app/data"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8005/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+  api-gateway:
+    build: ./api-gateway
+    container_name: equipo4-api-gateway
+    # Accesible desde el equipo anfitrión para desarrollo; no queda expuesto a Internet.
+    ports: ["127.0.0.1:8080:8080"]
+    environment:
+      JWT_SECRET: equipo4-demo-cambiar-antes-de-produccion
+      CURSOS_URL: http://cursos:8000
+      ESTUDIANTES_URL: http://estudiantes:8001
+      MATRICULAS_URL: http://matriculas:8002
+      DOCENTES_URL: http://docentes:8003
+      CALIFICACIONES_URL: http://calificaciones:8004
+      USUARIOS_URL: http://usuarios:8005
+      HORARIOS_URL: http://horarios:8006
+    depends_on:
+      cursos: {condition: service_healthy}
+      estudiantes: {condition: service_healthy}
+      matriculas: {condition: service_healthy}
+      docentes: {condition: service_healthy}
+      calificaciones: {condition: service_healthy}
+      usuarios: {condition: service_healthy}
+      horarios: {condition: service_healthy}
+    restart: unless-stopped
+
+volumes:
+  cursos_data:
+  estudiantes_data:
+  matriculas_data:
+  docentes_data:
+  calificaciones_data:
+  horarios_data:
+  usuarios_data:

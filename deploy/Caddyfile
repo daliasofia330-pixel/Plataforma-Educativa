@@ -1,0 +1,9 @@
+{$DOMAIN} {
+	encode zstd gzip
+	
+	@backend path /api/* /auth/* /portal/* /health /docs* /openapi.json
+	reverse_proxy @backend api-gateway:8080
+
+	root * /srv
+	file_server
+}

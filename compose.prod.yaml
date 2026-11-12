@@ -1,0 +1,30 @@
+services:
+  usuarios:
+    environment:
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en el archivo .env}
+
+  api-gateway:
+    environment:
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en el archivo .env}
+
+  web:
+    image: caddy:2-alpine
+    container_name: equipo4-web
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?Define DOMAIN en el archivo .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./frontend:/srv:ro
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api-gateway
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,20 @@
+services:
+  web:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      DOMAIN: ":80"
+    ports:
+      - "127.0.0.1:8081:80"
+    volumes:
+      - ./frontend:/srv:ro
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - api-gateway
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate --url http://web:80
+    restart: unless-stopped
+    depends_on:
+      - web
