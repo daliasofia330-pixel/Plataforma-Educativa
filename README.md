@@ -100,6 +100,14 @@ La primera persona que abra el frontend debe usar **Primer inicio** para crear e
 
 El servicio de Usuarios almacena las contraseñas con PBKDF2 y entrega tokens Bearer firmados con HS256 que vencen en una hora. El Gateway verifica el token y consulta Usuarios para confirmar que la cuenta siga activa antes de aceptar cada operación.
 
+### Recuperar una contraseña sin correo
+
+En **Olvidé mi contraseña**, la persona ingresa el correo y el número de documento vinculado a su cuenta y pulsa **Generar código de recuperación**. Si ambos coinciden, el código aparece una sola vez en esa pantalla, vence en 90 días y se usa para cambiar la contraseña. La persona debe copiarlo y guardarlo; la nueva clave no afecta matrículas, calificaciones, rol ni otros datos. No se genera código al iniciar sesión.
+
+Los perfiles de estudiantes y docentes usan el documento registrado en su perfil académico. La cuenta administradora guarda su documento en Usuarios: en una instalación inicial se ingresa al crear el administrador; para cuentas existentes, el administrador lo registra desde la acción **Registrar documento** de la tabla de Usuarios. Si alguien no puede validar sus datos, puede enviar una solicitud desde Recuperar contraseña. La solicitud aparece únicamente en el panel de Usuarios del administrador, quien puede emitir un código y compartirlo por un canal privado.
+
+El documento es una comprobación sencilla para esta demostración; en un despliegue real conviene combinarla con una verificación de identidad más fuerte.
+
 | Rol | Permisos en el Gateway |
 |---|---|
 | Administrador | Puede consultar, crear y eliminar registros en todos los servicios. |
@@ -122,7 +130,7 @@ Swagger permite probar rutas protegidas: inicia sesión en `POST /auth/login`, c
 
 1. Crear el primer administrador e iniciar sesión.
 2. Como administrador, registrar un curso, un perfil de estudiante y un perfil de docente.
-3. Crear las cuentas de estudiante y docente usando el mismo correo de sus perfiles; compartir cada correo y contraseña con su usuario por el canal acordado.
+3. Crear las cuentas de estudiante y docente usando el mismo correo de sus perfiles; compartir cada correo, contraseña y código de recuperación por canales privados.
 4. Asignar un horario al curso y docente para habilitar el acceso docente a ese curso.
 5. Como administrador o estudiante, inscribir al estudiante en el curso; como estudiante, consultar sus propias matrículas y calificaciones.
 6. Como docente asignado, registrar y actualizar una calificación de esa matrícula.

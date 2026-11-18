@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1050" viewBox="0 0 1600 1050" role="img" aria-labelledby="title desc">
+  <title id="title">Arquitectura general de la Plataforma Académica Universitaria</title>
+  <desc id="desc">Un usuario accede al frontend, que envía solicitudes al API Gateway. El Gateway enruta a siete microservicios independientes, cada uno con su propia base SQLite. Docker Compose agrupa el backend. Cloudflare Quick Tunnel y Caddy son opcionales para la demostración temporal por Internet.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth"><path d="M1,1 L11,6 L1,11 z" fill="#7154d8"/></marker>
+    <marker id="arrowMuted" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth"><path d="M1,1 L11,6 L1,11 z" fill="#9b8cc8"/></marker>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbfaff"/><stop offset="1" stop-color="#f2effb"/></linearGradient>
+    <style>
+      text{font-family:Inter,'Segoe UI',Arial,sans-serif;fill:#282044}
+      .title{font-size:34px;font-weight:800;letter-spacing:-.5px}
+      .subtitle{font-size:16px;fill:#716c86}
+      .frameTitle{font-size:18px;font-weight:800;fill:#51418b}
+      .label{font-size:16px;font-weight:750}
+      .small{font-size:13px;fill:#736d86}
+      .micro{font-size:12px;font-weight:700;fill:#625b78}
+      .gatewayTitle{font-size:21px;font-weight:800;fill:#ffffff}
+      .gatewaySub{font-size:14px;fill:#e1d9ff}
+    </style>
+  </defs>
+  <rect width="1600" height="1050" rx="26" fill="url(#bg)"/>
+  <text x="64" y="70" class="title">Arquitectura general</text>
+  <text x="66" y="103" class="subtitle">Plataforma Académica Universitaria · Equipo 4</text>
+  <rect x="1285" y="50" width="250" height="38" rx="19" fill="#e9e2ff"/>
+  <text x="1410" y="75" text-anchor="middle" class="micro" fill="#6348bd">7 microservicios · datos separados</text>
+
+  <!-- Entrada de usuarios -->
+  <rect x="58" y="250" width="228" height="108" rx="18" fill="#ffffff" stroke="#ded8f0" stroke-width="2"/>
+  <circle cx="94" cy="290" r="13" fill="#e9e2ff"/><path d="M72 333c2-19 12-28 22-28s20 9 22 28" fill="none" stroke="#795be0" stroke-width="5" stroke-linecap="round"/>
+  <text x="130" y="290" class="label">Usuario</text>
+  <text x="130" y="316" class="small">Administrador</text><text x="130" y="337" class="small">Docente · Estudiante</text>
+
+  <rect x="58" y="422" width="228" height="88" rx="16" fill="#f0ecff" stroke="#d9cff8" stroke-width="2"/>
+  <text x="172" y="458" text-anchor="middle" class="label">Navegador web</text>
+  <text x="172" y="484" text-anchor="middle" class="small">Interfaz según el rol</text>
+  <path d="M172 358 L172 416" fill="none" stroke="#7154d8" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <rect x="354" y="398" width="235" height="132" rx="18" fill="#ffffff" stroke="#bfb0ee" stroke-width="2.5"/>
+  <rect x="354" y="398" width="235" height="38" rx="18" fill="#ede8ff"/>
+  <path d="M354 419v17h235v-17" fill="#ede8ff"/>
+  <text x="471" y="424" text-anchor="middle" class="micro" fill="#6249b5">CAPA WEB</text>
+  <text x="471" y="466" text-anchor="middle" class="label">Frontend</text>
+  <text x="471" y="491" text-anchor="middle" class="small">HTML · CSS · JavaScript</text>
+  <text x="471" y="513" text-anchor="middle" class="micro">local :5500 / Caddy en demo</text>
+  <path d="M286 466 L346 466" fill="none" stroke="#7154d8" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <!-- Compose backend -->
+  <rect x="630" y="145" width="910" height="770" rx="24" fill="#ffffff" stroke="#9e8bdd" stroke-width="3"/>
+  <rect x="630" y="145" width="910" height="62" rx="24" fill="#eee9ff"/>
+  <path d="M630 181v26h910v-26" fill="#eee9ff"/>
+  <text x="668" y="185" class="frameTitle">Docker Compose · servicios backend</text>
+
+  <rect x="882" y="235" width="406" height="94" rx="18" fill="#2f245c"/>
+  <text x="1085" y="273" text-anchor="middle" class="gatewayTitle">API Gateway</text>
+  <text x="1085" y="301" text-anchor="middle" class="gatewaySub">Enrutamiento · JWT · permisos por rol</text>
+
+  <path d="M589 464 H614 V282 H874" fill="none" stroke="#7154d8" stroke-width="3.5" marker-end="url(#arrow)"/>
+  <text x="650" y="265" class="micro" fill="#6249b5">Solicitudes HTTP/JSON</text>
+  <path d="M1085 330 V350" fill="none" stroke="#7154d8" stroke-width="3.5" marker-end="url(#arrow)"/>
+  <rect x="883" y="359" width="404" height="35" rx="17" fill="#f4f1ff"/>
+  <text x="1085" y="382" text-anchor="middle" class="micro">Rutea solicitudes hacia las siete APIs REST</text>
+  <path d="M1085 395 V420" fill="none" stroke="#7154d8" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <!-- Services and their independent databases -->
+  <g>
+    <rect x="674" y="427" width="196" height="88" rx="14" fill="#f8f6ff" stroke="#d7cef0" stroke-width="2"/>
+    <text x="772" y="460" text-anchor="middle" class="label">Usuarios</text><text x="772" y="487" text-anchor="middle" class="small">Cuentas · autenticación</text>
+    <path d="M772 515 V533" stroke="#9b8cc8" stroke-width="2" marker-end="url(#arrowMuted)"/>
+    <rect x="686" y="540" width="172" height="50" rx="25" fill="#e9f6ef" stroke="#bfe4cf" stroke-width="1.5"/>
+    <text x="772" y="571" text-anchor="middle" class="micro" fill="#287650">SQLite propia</text>
+  </g>
+  <g>
+    <rect x="890" y="427" width="196" height="88" rx="14" fill="#f8f6ff" stroke="#d7cef0" stroke-width="2"/>
+    <text x="988" y="460" text-anchor="middle" class="label">Estudiantes</text><text x="988" y="487" text-anchor="middle" class="small">Perfiles académicos</text>
+    <path d="M988 515 V533" stroke="#9b8cc8" stroke-width="2" marker-end="url(#arrowMuted)"/>
+    <rect x="902" y="540" width="172" height="50" rx="25" fill="#e9f6ef" stroke="#bfe4cf" stroke-width="1.5"/>
+    <text x="988" y="571" text-anchor="middle" class="micro" fill="#287650">SQLite propia</text>
+  </g>
+  <g>
+    <rect x="1106" y="427" width="196" height="88" rx="14" fill="#f8f6ff" stroke="#d7cef0" stroke-width="2"/>
+    <text x="1204" y="460" text-anchor="middle" class="label">Docentes</text><text x="1204" y="487" text-anchor="middle" class="small">Perfiles docentes</text>
+    <path d="M1204 515 V533" stroke="#9b8cc8" stroke-width="2" marker-end="url(#arrowMuted)"/>
+    <rect x="1118" y="540" width="172" height="50" rx="25" fill="#e9f6ef" stroke="#bfe4cf" stroke-width="1.5"/>
+    <text x="1204" y="571" text-anchor="middle" class="micro" fill="#287650">SQLite propia</text>
+  </g>
+  <g>
+    <rect x="1322" y="427" width="196" height="88" rx="14" fill="#f8f6ff" stroke="#d7cef0" stroke-width="2"/>
+    <text x="1420" y="460" text-anchor="middle" class="label">Cursos</text><text x="1420" y="487" text-anchor="middle" class="small">Oferta · cupos</text>
+    <path d="M1420 515 V533" stroke="#9b8cc8" stroke-width="2" marker-end="url(#arrowMuted)"/>
+    <rect x="1334" y="540" width="172" height="50" rx="25" fill="#e9f6ef" stroke="#bfe4cf" stroke-width="1.5"/>
+    <text x="1420" y="571" text-anchor="middle" class="micro" fill="#287650">SQLite propia</text>
+  </g>
+
+  <g>
+    <rect x="782" y="628" width="196" height="88" rx="14" fill="#f8f6ff" stroke="#d7cef0" stroke-width="2"/>
+    <text x="880" y="661" text-anchor="middle" class="label">Matrículas</text><text x="880" y="688" text-anchor="middle" class="small">Inscripción · estado</text>
+    <path d="M880 716 V734" stroke="#9b8cc8" stroke-width="2" marker-end="url(#arrowMuted)"/>
+    <rect x="794" y="741" width="172" height="50" rx="25" fill="#e9f6ef" stroke="#bfe4cf" stroke-width="1.5"/>
+    <text x="880" y="772" text-anchor="middle" class="micro" fill="#287650">SQLite propia</text>
+  </g>
+  <g>
+    <rect x="998" y="628" width="196" height="88" rx="14" fill="#f8f6ff" stroke="#d7cef0" stroke-width="2"/>
+    <text x="1096" y="661" text-anchor="middle" class="label">Calificaciones</text><text x="1096" y="688" text-anchor="middle" class="small">Notas · observaciones</text>
+    <path d="M1096 716 V734" stroke="#9b8cc8" stroke-width="2" marker-end="url(#arrowMuted)"/>
+    <rect x="1010" y="741" width="172" height="50" rx="25" fill="#e9f6ef" stroke="#bfe4cf" stroke-width="1.5"/>
+    <text x="1096" y="772" text-anchor="middle" class="micro" fill="#287650">SQLite propia</text>
+  </g>
+  <g>
+    <rect x="1214" y="628" width="196" height="88" rx="14" fill="#f8f6ff" stroke="#d7cef0" stroke-width="2"/>
+    <text x="1312" y="661" text-anchor="middle" class="label">Horarios</text><text x="1312" y="688" text-anchor="middle" class="small">Clases · aulas</text>
+    <path d="M1312 716 V734" stroke="#9b8cc8" stroke-width="2" marker-end="url(#arrowMuted)"/>
+    <rect x="1226" y="741" width="172" height="50" rx="25" fill="#e9f6ef" stroke="#bfe4cf" stroke-width="1.5"/>
+    <text x="1312" y="772" text-anchor="middle" class="micro" fill="#287650">SQLite propia</text>
+  </g>
+
+  <!-- Temporary public demo note -->
+  <rect x="58" y="640" width="525" height="208" rx="18" fill="#fffaf0" stroke="#edcf94" stroke-width="2" stroke-dasharray="8 7"/>
+  <text x="86" y="678" font-size="15" font-weight="800" fill="#93631b">ACCESO PÚBLICO TEMPORAL · OPCIONAL</text>
+  <text x="86" y="716" font-size="14" fill="#594b32">Cloudflare Quick Tunnel genera una URL temporal</text>
+  <text x="86" y="741" font-size="14" fill="#594b32">→ Caddy sirve el frontend y reenvía las rutas API</text>
+  <text x="86" y="766" font-size="14" fill="#594b32">→ Gateway → microservicios</text>
+  <text x="86" y="816" font-size="13" fill="#78694e">En local, el frontend se sirve en :5500.</text>
+
+  <rect x="630" y="936" width="910" height="58" rx="15" fill="#f1edff"/>
+  <text x="1085" y="961" text-anchor="middle" class="micro">Cada servicio administra su propia base de datos SQLite.</text>
+  <text x="1085" y="982" text-anchor="middle" class="small">Las llamadas entre servicios se detallan en el diagrama de comunicación.</text>
+</svg>

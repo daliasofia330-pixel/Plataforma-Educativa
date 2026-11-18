@@ -32,9 +32,16 @@ async def lifespan(_: FastAPI):
                 nombre TEXT NOT NULL,
                 creditos INTEGER NOT NULL CHECK (creditos BETWEEN 1 AND 10),
                 cupos INTEGER NOT NULL CHECK (cupos >= 0),
+                programa TEXT NOT NULL DEFAULT 'General',
                 activo INTEGER NOT NULL DEFAULT 1 CHECK (activo IN (0, 1))
             )"""
         )
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(cursos)")}
+        if "programa" not in columns:
+            conn.execute("ALTER TABLE cursos ADD COLUMN programa TEXT NOT NULL DEFAULT 'General'")
+            conn.execute("UPDATE cursos SET programa='Seguridad Informática' WHERE lower(nombre) LIKE '%seguridad%'")
+            conn.execute("UPDATE cursos SET programa='Derecho' WHERE lower(nombre) LIKE '%derecho%'")
+            conn.execute("UPDATE cursos SET programa='Ingeniería de Sistemas' WHERE codigo IN ('DS310','WEB220','IA205')")
     yield
 
 
@@ -60,6 +67,7 @@ class CursoIn(BaseModel):
     nombre: str = Field(min_length=3, max_length=120, examples=["Fundamentos de Programación"])
     creditos: int = Field(ge=1, le=10, examples=[3])
     cupos: int = Field(ge=0, le=500, examples=[30])
+    programa: str = Field(default="General", min_length=3, max_length=100, examples=["Seguridad Informática"])
     activo: bool = True
 
 
@@ -69,7 +77,7 @@ class Curso(CursoIn):
 
 def as_curso(row):
     return Curso(id=row["id"], codigo=row["codigo"], nombre=row["nombre"],
-                 creditos=row["creditos"], cupos=row["cupos"], activo=bool(row["activo"]))
+                 creditos=row["creditos"], cupos=row["cupos"], programa=row["programa"], activo=bool(row["activo"]))
 
 
 @app.get("/health", tags=["Sistema"])
@@ -82,9 +90,9 @@ def crear_curso(payload: CursoIn):
     try:
         with connect() as conn:
             cursor = conn.execute(
-                "INSERT INTO cursos (codigo, nombre, creditos, cupos, activo) VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO cursos (codigo, nombre, creditos, cupos, programa, activo) VALUES (?, ?, ?, ?, ?, ?)",
                 (payload.codigo.strip().upper(), payload.nombre.strip(), payload.creditos,
-                 payload.cupos, int(payload.activo)),
+                 payload.cupos, payload.programa.strip(), int(payload.activo)),
             )
             row = conn.execute("SELECT * FROM cursos WHERE id = ?", (cursor.lastrowid,)).fetchone()
             return as_curso(row)
@@ -112,9 +120,9 @@ def actualizar_curso(curso_id: int, payload: CursoIn):
     try:
         with connect() as conn:
             cursor = conn.execute(
-                "UPDATE cursos SET codigo = ?, nombre = ?, creditos = ?, cupos = ?, activo = ? WHERE id = ?",
+                "UPDATE cursos SET codigo = ?, nombre = ?, creditos = ?, cupos = ?, programa = ?, activo = ? WHERE id = ?",
                 (payload.codigo.strip().upper(), payload.nombre.strip(), payload.creditos,
-                 payload.cupos, int(payload.activo), curso_id),
+                 payload.cupos, payload.programa.strip(), int(payload.activo), curso_id),
             )
             if cursor.rowcount == 0:
                 raise HTTPException(status_code=404, detail="Curso no encontrado.")

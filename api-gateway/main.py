@@ -4,7 +4,9 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import time
+import unicodedata
 from typing import Any
 
 import httpx
@@ -117,6 +119,19 @@ def resource_id(path: str) -> int | None:
         return None
 
 
+def program_key(value: str | None) -> str:
+    normalized = unicodedata.normalize("NFKD", value or "")
+    normalized = "".join(char for char in normalized if not unicodedata.combining(char))
+    normalized = " ".join("".join(char if char.isalnum() or char.isspace() else " " for char in normalized.lower()).split())
+    aliases = {
+        "ing sistemas": "ingenieria de sistemas",
+        "ingenieria sistemas": "ingenieria de sistemas",
+        "ing de sistemas": "ingenieria de sistemas",
+        "administracion empresas": "administracion de empresas",
+    }
+    return aliases.get(normalized, normalized)
+
+
 async def rows_for_user(role: str, email: str) -> tuple[dict[str, Any], list[int]]:
     profile = await profile_by_email(role, email)
     if not profile or not profile.get("activo", True):
@@ -146,10 +161,12 @@ async def scoped_rows(service: str, path: str, role: str, profile: dict[str, Any
         if path == "/cursos":
             rows = row or []
             if role == "estudiante":
-                return [item for item in rows if item.get("activo")]
+                program = program_key(profile.get("programa"))
+                return [item for item in rows if item.get("activo") and program and program_key(item.get("programa")) == program]
             return [item for item in rows if item.get("id") in scope_ids and item.get("activo")]
         if role == "estudiante":
-            return row if row and row.get("activo") else None
+            program = program_key(profile.get("programa"))
+            return row if row and row.get("activo") and program and program_key(row.get("programa")) == program else None
         return row if row and row.get("id") in scope_ids and row.get("activo") else None
     if service == "matriculas":
         rows = await service_json(service, "/matriculas") or []
@@ -177,6 +194,20 @@ async def scoped_rows(service: str, path: str, role: str, profile: dict[str, Any
         else:
             course_ids = set(scope_ids)
         rows = [row for row in rows if row.get("curso_id") in course_ids]
+        courses = await service_json("cursos", "/cursos") or []
+        courses_by_id = {str(course.get("id")): course for course in courses}
+        rows = [
+            {
+                **row,
+                "curso": (
+                    f"{courses_by_id[str(row.get('curso_id'))].get('codigo', '')} · "
+                    f"{courses_by_id[str(row.get('curso_id'))].get('nombre', '')}"
+                ).strip(" ·")
+                if str(row.get("curso_id")) in courses_by_id
+                else f"Curso ID {row.get('curso_id')} (sin nombre en el catálogo)"
+            }
+            for row in rows
+        ]
         if item_id is not None:
             return next((row for row in rows if row.get("id") == item_id), None)
         return rows
@@ -250,6 +281,31 @@ async def bootstrap(request: Request):
 @app.post("/auth/login", tags=["Autenticación"])
 async def login(request: Request):
     return await proxy("usuarios", "/auth/login", request)
+
+
+@app.post("/auth/recovery-code", tags=["Autenticación"])
+async def recovery_code(request: Request):
+    try:
+        payload = await request.json()
+        email = str(payload.get("correo", "")).strip().lower()
+        document = re.sub(r"\D", "", str(payload.get("documento", "")))
+    except (ValueError, AttributeError):
+        raise HTTPException(400, "Ingresa el correo y documento asociados a la cuenta.")
+    if not email or not document:
+        raise HTTPException(400, "Ingresa el correo y documento asociados a la cuenta.")
+    users = await service_json("usuarios", "/usuarios") or []
+    account = next((row for row in users if row.get("correo", "").strip().lower() == email and row.get("activo")), None)
+    valid_document = ""
+    if account and account.get("rol") in {"estudiante", "docente"}:
+        profile = await profile_by_email(account["rol"], email)
+        if profile and profile.get("activo", True):
+            valid_document = re.sub(r"\D", "", str(profile.get("documento", "")))
+    elif account and account.get("rol") == "administrador":
+        valid_document = re.sub(r"\D", "", str(account.get("documento") or ""))
+    if not account or not valid_document or not hmac.compare_digest(document, valid_document):
+        raise HTTPException(400, "No se pudo validar el correo y el documento.")
+    return await proxy("usuarios", "/auth/recovery-code", request,
+                       body_override=json.dumps({"correo": email}).encode(), method_override="POST")
 
 
 @app.get("/auth/me", tags=["Autenticación"])
@@ -331,7 +387,7 @@ async def service_openapi(service: str):
         for method, operation in operations.items():
             if not isinstance(operation, dict):
                 continue
-            if route_path == "/auth/login" and method.lower() == "post":
+            if route_path in {"/auth/login", "/auth/recovery-code", "/auth/password-reset", "/auth/recovery-request"} and method.lower() == "post":
                 operation["security"] = []
             else:
                 operation["security"] = [{"BearerAuth": []}]
@@ -342,7 +398,7 @@ async def service_openapi(service: str):
 async def route(path: str, request: Request):
     service, upstream_path = identify_service(path)
     method = request.method.upper()
-    public_routes = {("POST", "/auth/login")}
+    public_routes = {("POST", "/auth/login"), ("POST", "/auth/password-reset"), ("POST", "/auth/recovery-request")}
     if (method, upstream_path) in public_routes:
         return await proxy(service, upstream_path, request)
     user = await authenticated_user(request)
@@ -360,6 +416,8 @@ async def route(path: str, request: Request):
                 profile = await profile_by_email(payload["rol"], payload.get("correo", ""))
                 if not profile or not profile.get("activo", True):
                     raise HTTPException(422, "Primero crea un perfil académico activo con el mismo correo.")
+                payload["documento"] = profile.get("documento")
+                return await proxy(service, upstream_path, request, body_override=json.dumps(payload).encode())
         return await proxy(service, upstream_path, request)
 
     if role in {"estudiante", "docente"}:
@@ -372,6 +430,13 @@ async def route(path: str, request: Request):
             except ValueError:
                 raise HTTPException(400, "El cuerpo JSON no es válido.")
             payload["estudiante_id"] = profile["id"]
+            try:
+                course_id = int(payload.get("curso_id", 0))
+            except (TypeError, ValueError):
+                raise HTTPException(422, "Selecciona un curso válido de tu programa.")
+            course = await service_json("cursos", f"/cursos/{course_id}")
+            if not course or not course.get("activo") or program_key(course.get("programa")) != program_key(profile.get("programa")):
+                raise HTTPException(403, "Solo puedes matricularte en cursos activos de tu programa académico.")
             return await proxy(service, upstream_path, request, body_override=json.dumps(payload).encode())
 
         if role == "estudiante" and service == "matriculas" and method in {"PUT", "DELETE"} and item_id is not None:
